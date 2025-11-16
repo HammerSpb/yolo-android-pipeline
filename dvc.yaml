@@ -1,0 +1,145 @@
+stages:
+  prepare_data:
+    desc: "Unzip raw data, split into train/val, and create data.yaml"
+    cmd: >
+      python scripts/prepare.py
+      --zip_file data/raw/dataset.zip
+      --output_dir data/processed
+      --split_ratio 0.2
+    deps:
+      - data/raw/dataset.zip
+      - scripts/prepare.py
+    outs:
+      - data/processed
+
+  train:
+    desc: "Train the FP32 .pt model"
+    cmd: >
+      python scripts/train.py
+      --data data/processed/data.yaml
+      --base_model ${train.base_model}
+      --epochs ${train.epochs}
+      --imgsz ${train.imgsz}
+      --patience ${train.patience}
+      --batch ${train.batch}
+      --device ${train.device}
+      --output_dir models/fp32
+      --output_metrics metrics/train_stats.json
+    deps:
+      - data/processed
+      - scripts/train.py
+    params:
+      - train
+    outs:
+      - models/fp32/best.pt
+    metrics:
+      - metrics/train_stats.json:
+          cache: false
+
+  quantize_fp16:
+    desc: "convert the fp32 model to tflite fp16"
+    cmd: >
+      python scripts/quantize.py
+      --weights models/fp32/best.pt
+      --output_file models/fp16/best.tflite
+      --mode fp16
+      --format ${quantize.format}
+    deps:
+      - models/fp32/best.pt
+      - scripts/quantize.py
+    params:
+      - quantize.format
+    outs:
+      - models/fp16/best.tflite
+
+  quantize_int8:
+    desc: "Convert the FP32 model to TFLite INT8 (with calibration)"
+    cmd: >
+      python scripts/quantize.py
+      --weights models/fp32/best.pt
+      --output_file models/int8/best.tflite
+      --mode int8
+      --format ${quantize.format}
+      --data data/processed/data.yaml
+    deps:
+      - models/fp32/best.pt
+      - data/processed  # Needs data for calibration
+      - scripts/quantize.py
+    params:
+      - quantize.format
+    outs:
+      - models/int8/best.tflite
+
+  evaluate_fp32:
+    desc: "Evaluate the FP32 model (mAP, binary, speed, size)"
+    cmd: >
+      python scripts/evaluate.py
+      --weights models/fp32/best.pt
+      --data data/processed/data.yaml
+      --output_metrics_file metrics/eval_fp32.json
+      --output_crops_dir data/crops/fp32
+      --test_images_dir data/real_test/images
+      --test_ground_truth data/real_test/ground_truth.json
+      --imgsz ${train.imgsz}
+    deps:
+      - models/fp32/best.pt
+      - data/real_test
+      - data/processed/val
+      - scripts/evaluate.py
+    params:
+      - train.imgsz
+    metrics:
+      - metrics/eval_fp32.json:
+          cache: false
+    outs:
+      - data/crops/fp32
+
+  evaluate_fp16:
+    desc: "Evaluate the TFLite FP16 model (mAP, binary, speed, size)"
+    cmd: >
+      python scripts/evaluate.py
+      --weights models/fp16/best.tflite
+      --data data/processed/data.yaml
+      --output_metrics_file metrics/eval_fp16.json
+      --output_crops_dir data/crops/fp16
+      --test_images_dir data/real_test/images
+      --test_ground_truth data/real_test/ground_truth.json
+      --imgsz ${train.imgsz}
+    deps:
+      - models/fp16/best.tflite
+      - data/real_test
+      - data/processed/val
+      - scripts/evaluate.py
+    params:
+      - quantize.format # To reconstruct file name if needed
+      - train.imgsz
+    metrics:
+      - metrics/eval_fp16.json:
+          cache: false
+    outs:
+      - data/crops/fp16
+
+  evaluate_int8:
+    desc: "Evaluate the TFLite INT8 model (mAP, binary, speed, size)"
+    cmd: >
+      python scripts/evaluate.py
+      --weights models/int8/best.tflite
+      --data data/processed/data.yaml
+      --output_metrics_file metrics/eval_int8.json
+      --output_crops_dir data/crops/int8
+      --test_images_dir data/real_test/images
+      --test_ground_truth data/real_test/ground_truth.json
+      --imgsz ${train.imgsz}
+    deps:
+      - models/int8/best.tflite
+      - data/real_test
+      - data/processed/val
+      - scripts/evaluate.py
+    params:
+      - quantize.format # To reconstruct file name if needed
+      - train.imgsz
+    metrics:
+      - metrics/eval_int8.json:
+          cache: false
+    outs:
+      - data/crops/int8

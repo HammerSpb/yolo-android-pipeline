@@ -1,0 +1,6 @@
+outs:
+- md5: d74cc66d5d6e4b8dc54fc339ddf3224a.dir
+  size: 278214708
+  nfiles: 572
+  hash: md5
+  path: real_test

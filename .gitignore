@@ -1,0 +1,17 @@
+.dvc/cache
+.dvc/tmp
+/data/processed/
+/data/crops/
+/data/raw/dataset.zip # The .dvc file is tracked, not the zip
+/data/real_test/
+/models/
+/metrics/
+
+pycache/
+*.pyc
+.env
+venv/
+*.env
+
+.DS_Store
+Thumbs.db

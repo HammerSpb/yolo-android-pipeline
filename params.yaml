@@ -1,0 +1,10 @@
+train:
+  base_model: "yolov8n.pt"
+  epochs: 50
+  imgsz: 640
+  patience: 20
+  batch: 8
+  device: '0'     # '0' for GPU, 'cpu', 'mps' for Mac
+
+quantize:
+  format: "tflite" # Target format for conversion
