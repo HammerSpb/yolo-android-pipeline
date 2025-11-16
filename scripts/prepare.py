@@ -1,6 +1,8 @@
 # File: scripts/prepare.py
 # Description: Unzips raw Roboflow data, splits it into train/val sets,
 #              and creates a data.yaml file for YOLO training.
+#
+# v2: Fixed logic to correctly find labels in .../labels/ directory.
 
 import argparse
 import os
@@ -34,36 +36,57 @@ def main(args):
         zip_ref.extractall(raw_data_dir)
     print("Unzip complete.")
 
-    # --- 3. Find Images and Labels ---
-    # This searches recursively for images and matching .txt labels.
-    
+    # --- 3. Find Images and Labels (Corrected Logic) ---
+    print("Searching for images and labels...")
     all_images = []
     all_labels = []
-
-    print("Searching for images and labels...")
+    
     image_extensions = ['.jpg', '.jpeg', '.png']
-    for ext in image_extensions:
-        for img_path in raw_data_dir.rglob(f'*{ext}'):
-            label_path = img_path.with_suffix('.txt')
-            
-            if label_path.exists():
-                all_images.append(img_path)
-                all_labels.append(label_path)
-            else:
-                print(f"Warning: Found image {img_path} with no matching .txt label. Skipping.")
+    
+    # Use rglob to find all 'images' directories (train/images, valid/images, all/images, etc.)
+    image_dirs = list(raw_data_dir.rglob('images'))
+    
+    if not image_dirs:
+        print(f"Error: No 'images' directories found in {raw_data_dir}.")
+        print("Please check your Roboflow export format.")
+        return
 
+    print(f"Found image directories: {[d.relative_to(raw_data_dir) for d in image_dirs]}")
+
+    for img_dir in image_dirs:
+        # img_dir is something like .../raw_unzipped/train/images
+        # label_dir will be .../raw_unzipped/train/labels
+        label_dir = img_dir.parent / 'labels'
+        
+        if not label_dir.exists():
+            print(f"Warning: Found {img_dir} but no corresponding {label_dir}. Skipping.")
+            continue
+            
+        for ext in image_extensions:
+            for img_path in img_dir.glob(f'*{ext}'):
+                # img_path = .../raw_unzipped/train/images/foo.jpg
+                # label_path = .../raw_unzipped/train/labels/foo.txt
+                label_path = label_dir / img_path.with_suffix('.txt').name
+                
+                if label_path.exists():
+                    all_images.append(img_path)
+                    all_labels.append(label_path)
+                else:
+                    # This warning means an image is unannotated
+                    print(f"Warning: Found image {img_path.name} but no matching label in {label_dir}. Skipping.")
+    
     if not all_images:
         print(f"Error: No image/label pairs found in {raw_data_dir}.")
         return
-
-    print(f"Found {len(all_images)} image/label pairs.")
+    
+    print(f"Found {len(all_images)} total image/label pairs.")
 
     # --- 4. Split the Data ---
     images_train, images_val, labels_train, labels_val = train_test_split(
         all_images, 
         all_labels, 
         test_size=args.split_ratio, 
-        random_state=42
+        random_state=42 # Use a fixed random state for reproducibility
     )
     
     print(f"Splitting data: {len(images_train)} train, {len(images_val)} validation.")

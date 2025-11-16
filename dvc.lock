@@ -1,0 +1,20 @@
+schema: '2.0'
+stages:
+  prepare_data:
+    cmd: "python scripts/prepare.py --zip_file data/raw/dataset.zip --output_dir data/processed
+      --split_ratio 0.2\n"
+    deps:
+    - path: data/raw/dataset.zip
+      hash: md5
+      md5: 6f892b7502b8a8b6bea73849c043b34a
+      size: 135365980
+    - path: scripts/prepare.py
+      hash: md5
+      md5: 8eb6190b069976a07af2a5c310ce6b5e
+      size: 5889
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: a6436d916ee008a5840dcf459fc7103f.dir
+      size: 135047296
+      nfiles: 1141
