@@ -149,3 +149,15 @@ stages:
           cache: false
     outs:
       - data/crops/int8
+
+  cleanup:
+    desc: "Clean up intermediate artifacts (YOLO runs, .npy, etc.)"
+    cmd: python scripts/cleanup.py
+    deps:
+      - metrics/eval_fp32.json
+      - metrics/eval_fp16.json
+      - metrics/eval_int8.json
+      - scripts/cleanup.py
+    outs:
+      - .dvc/tmp/cleanup_receipt:
+          cache: false
