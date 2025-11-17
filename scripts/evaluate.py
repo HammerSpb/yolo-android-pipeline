@@ -5,8 +5,7 @@
 #             3. Inference Speed (ms)
 #             4. File Size (MB)
 #
-# v2: Fixed bug where 'imgsz' was hardcoded to 640.
-#     Now correctly accepts '--imgsz' argument from dvc.yaml.
+# v3: Added '--device' argument to run eval on 'mps' (GPU) or 'cpu'.
 
 import argparse
 import json
@@ -17,14 +16,14 @@ import time
 from ultralytics import YOLO
 from pathlib import Path
 
-def run_mAP_evaluation(model, data_yaml_path, imgsz):
+def run_mAP_evaluation(model, data_yaml_path, imgsz, device): # <--- ADDED device
     """
     Runs the standard YOLO .val() method to get mAP, Precision, Recall.
     """
-    print(f"\nRunning mAP evaluation using {data_yaml_path} at {imgsz}...")
+    print(f"\nRunning mAP evaluation using {data_yaml_path} at {imgsz} on {device}...")
     try:
         # We must specify imgsz for TFLite/ONNX models
-        results = model.val(data=data_yaml_path, split='val', imgsz=imgsz)
+        results = model.val(data=data_yaml_path, split='val', imgsz=imgsz, device=device) # <--- ADDED device
         metrics = {
             "mAP50-95": results.box.map,
             "mAP50": results.box.map50,
@@ -38,12 +37,12 @@ def run_mAP_evaluation(model, data_yaml_path, imgsz):
         metrics = {"mAP50-95": 0, "mAP50": 0, "precision": 0, "recall": 0}
     return metrics
 
-def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir, imgsz):
+def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir, imgsz, device): # <--- ADDED device
     """
     Runs the 'real-world' binary test (crop vs. no-crop) and
     calculates Hit Rate, False Alarm Rate, and Inference Speed.
     """
-    print(f"\nRunning binary 'real-world' test...")
+    print(f"\nRunning binary 'real-world' test on {device}...")
     
     # --- 1. Load Ground Truth ---
     try:
@@ -70,12 +69,12 @@ def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir,
     image_count = 0
 
     # --- 3. Warm-up Run (for accurate speed testing) ---
-    print(f"Running model warm-up for speed test at {imgsz}...")
+    print(f"Running model warm-up for speed test at {imgsz} on {device}...")
     try:
         warmup_img_path = str(image_files[0])
         warmup_img = cv2.imread(warmup_img_path)
         if warmup_img is not None:
-            model(warmup_img, verbose=False, imgsz=imgsz)
+            model(warmup_img, verbose=False, imgsz=imgsz, device=device) # <--- ADDED device
         else:
             print(f"⚠️ Could not read warm-up image: {warmup_img_path}")
     except Exception as e:
@@ -97,7 +96,7 @@ def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir,
 
         # --- Run inference and time it ---
         start_time = time.perf_counter()
-        results = model(img, verbose=False, imgsz=imgsz)
+        results = model(img, verbose=False, imgsz=imgsz, device=device) # <--- ADDED device
         end_time = time.perf_counter()
         
         total_inference_time_ms += (end_time - start_time) * 1000  # Convert to ms
@@ -159,7 +158,7 @@ def main(args):
     model = YOLO(args.weights)
 
     # 3. Run mAP evaluation
-    map_metrics = run_mAP_evaluation(model, args.data, args.imgsz)
+    map_metrics = run_mAP_evaluation(model, args.data, args.imgsz, args.device) # <--- ADDED args.device
 
     # 4. Run binary "real-world" test
     binary_metrics = run_binary_test(
@@ -167,7 +166,8 @@ def main(args):
         args.test_images_dir,
         args.test_ground_truth,
         args.output_crops_dir,
-        args.imgsz  # <-- Pass the dynamic imgsz
+        args.imgsz,
+        args.device  # <--- ADDED args.device
     )
 
     # 5. Combine all metrics
@@ -182,7 +182,7 @@ def main(args):
     with open(args.output_metrics_file, 'w') as f:
         json.dump(all_metrics, f, indent=4)
     
-    print(f"\n✅ All evaluations complete. Combined metrics saved to {args.output_metrics_file}")
+    print(f"\n✅ All evaluations complete. Combined metrics saved to {args.Soutput_metrics_file}")
     print(json.dumps(all_metrics, indent=4))
 
 if __name__ == "__main__":
@@ -197,8 +197,9 @@ if __name__ == "__main__":
     
     parser.add_argument("--output_metrics_file", type=str, required=True, help="Path to save the combined output metrics.json.")
     
-    # --- THIS IS THE FIX ---
     parser.add_argument("--imgsz", type=int, required=True, help="Image size for evaluation (e.g., 640).")
+    
+    parser.add_argument("--device", type=str, required=True, help="Device to run on (e.g., 'cpu', 'mps').") # <--- ADDED
     
     args = parser.parse_args()
     main(args)

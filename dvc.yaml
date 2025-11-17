@@ -81,6 +81,7 @@ stages:
       --test_images_dir data/real_test/images
       --test_ground_truth data/real_test/ground_truth.json
       --imgsz ${train.imgsz}
+      --device ${train.device}
     deps:
       - models/fp32/best.pt
       - data/real_test
@@ -88,6 +89,7 @@ stages:
       - scripts/evaluate.py
     params:
       - train.imgsz
+      - train.device
     metrics:
       - metrics/eval_fp32.json:
           cache: false
@@ -105,6 +107,7 @@ stages:
       --test_images_dir data/real_test/images
       --test_ground_truth data/real_test/ground_truth.json
       --imgsz ${train.imgsz}
+      --device ${train.device}
     deps:
       - models/fp16/best.tflite
       - data/real_test
@@ -113,6 +116,7 @@ stages:
     params:
       - quantize.format # To reconstruct file name if needed
       - train.imgsz
+      - train.device
     metrics:
       - metrics/eval_fp16.json:
           cache: false
@@ -130,6 +134,7 @@ stages:
       --test_images_dir data/real_test/images
       --test_ground_truth data/real_test/ground_truth.json
       --imgsz ${train.imgsz}
+      --device ${train.device}
     deps:
       - models/int8/best.tflite
       - data/real_test
@@ -138,6 +143,7 @@ stages:
     params:
       - quantize.format # To reconstruct file name if needed
       - train.imgsz
+      - train.device
     metrics:
       - metrics/eval_int8.json:
           cache: false

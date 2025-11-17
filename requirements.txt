@@ -3,7 +3,7 @@
 # For training, evaluation, and quantization.
 # This will automatically pull in the correct platform-specific
 # torch, torchvision, opencv-python, pyyaml, etc.
-ultralytics
+ultralytics[export]
 
 # For the dvc pipeline itself, with Google Drive support
 dvc[gdrive]

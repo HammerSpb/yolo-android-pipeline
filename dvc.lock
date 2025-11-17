@@ -20,7 +20,7 @@ stages:
       nfiles: 1141
   train:
     cmd: "python scripts/train.py --data data/processed/data.yaml --base_model yolov8n.pt
-      --epochs 40 --imgsz 640 --patience 20 --batch 8 --device mps --output_dir models/fp32
+      --epochs 40 --imgsz 640 --patience 10 --batch 8 --device mps --output_dir models/fp32
       --output_metrics metrics/train_stats.json\n"
     deps:
     - path: data/processed
@@ -38,15 +38,135 @@ stages:
           base_model: yolov8n.pt
           epochs: 40
           imgsz: 640
-          patience: 20
+          patience: 10
           batch: 8
           device: mps
     outs:
     - path: metrics/train_stats.json
       hash: md5
-      md5: ba6efe24f69bb09e845a97249ce7e78b
+      md5: 5cc7c97237257a6424f1c0e95d9537ec
       size: 140
     - path: models/fp32/best.pt
       hash: md5
-      md5: 594de2eb47c3681bb1069f43992e26a0
-      size: 6217898
+      md5: 7143f90ef9ab58f0404ac8d119e6cb4a
+      size: 6217258
+  quantize_fp16:
+    cmd: "python scripts/quantize.py --weights models/fp32/best.pt --output_file models/fp16/best.tflite
+      --mode fp16 --format tflite\n"
+    deps:
+    - path: models/fp32/best.pt
+      hash: md5
+      md5: 7143f90ef9ab58f0404ac8d119e6cb4a
+      size: 6217258
+    - path: scripts/quantize.py
+      hash: md5
+      md5: 81b3222fcb719d6ef21f365e1731b1ee
+      size: 2631
+    params:
+      params.yaml:
+        quantize.format: tflite
+    outs:
+    - path: models/fp16/best.tflite
+      hash: md5
+      md5: 6e99767ac97dbcf56a2c81457e83e83e
+      size: 6183212
+  quantize_int8:
+    cmd: "python scripts/quantize.py --weights models/fp32/best.pt --output_file models/int8/best.tflite
+      --mode int8 --format tflite --data data/processed/data.yaml\n"
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 1dcb40eb0a8f688141514ea3073b2e06.dir
+      size: 135197865
+      nfiles: 1143
+    - path: models/fp32/best.pt
+      hash: md5
+      md5: 7143f90ef9ab58f0404ac8d119e6cb4a
+      size: 6217258
+    - path: scripts/quantize.py
+      hash: md5
+      md5: 81b3222fcb719d6ef21f365e1731b1ee
+      size: 2631
+    params:
+      params.yaml:
+        quantize.format: tflite
+    outs:
+    - path: models/int8/best.tflite
+      hash: md5
+      md5: e13e0b4bbe54be18a5ba20dcde21a01a
+      size: 3347208
+  evaluate_fp32:
+    cmd: "python scripts/evaluate.py --weights models/fp32/best.pt --data data/processed/data.yaml
+      --output_metrics_file metrics/eval_fp32.json --output_crops_dir data/crops/fp32
+      --test_images_dir data/real_test/images --test_ground_truth data/real_test/ground_truth.json
+      --imgsz 640\n"
+    deps:
+    - path: data/processed/val
+      hash: md5
+      md5: dcbcea1b46733c76afd4b7f6fac59595.dir
+      size: 27318580
+      nfiles: 229
+    - path: data/real_test
+      hash: md5
+      md5: 8841e39c4fac5db926da22afa142b018.dir
+      size: 278216630
+      nfiles: 572
+    - path: models/fp32/best.pt
+      hash: md5
+      md5: 7143f90ef9ab58f0404ac8d119e6cb4a
+      size: 6217258
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: 2d4add87510359fab9a2e54d16fccbb8
+      size: 7775
+    params:
+      params.yaml:
+        train.imgsz: 640
+    outs:
+    - path: data/crops/fp32
+      hash: md5
+      md5: 2b6f22c7d1b5aac31e60f95957adf5cd.dir
+      size: 57521399
+      nfiles: 357
+    - path: metrics/eval_fp32.json
+      hash: md5
+      md5: ff0d239700d4b5491f4d54163477e2ef
+      size: 384
+  evaluate_fp16:
+    cmd: "python scripts/evaluate.py --weights models/fp16/best.tflite --data data/processed/data.yaml
+      --output_metrics_file metrics/eval_fp16.json --output_crops_dir data/crops/fp16
+      --test_images_dir data/real_test/images --test_ground_truth data/real_test/ground_truth.json
+      --imgsz 640\n"
+    deps:
+    - path: data/processed/val
+      hash: md5
+      md5: dcbcea1b46733c76afd4b7f6fac59595.dir
+      size: 27318580
+      nfiles: 229
+    - path: data/real_test
+      hash: md5
+      md5: 8841e39c4fac5db926da22afa142b018.dir
+      size: 278216630
+      nfiles: 572
+    - path: models/fp16/best.tflite
+      hash: md5
+      md5: 6e99767ac97dbcf56a2c81457e83e83e
+      size: 6183212
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: 0eeb675d9ccdde8fba65f61765d47ee3
+      size: 8079
+    params:
+      params.yaml:
+        quantize.format: tflite
+        train.imgsz: 640
+    outs:
+    - path: data/crops/fp16
+      hash: md5
+      md5: c01586b9c03c36e88947ef0870ea631f.dir
+      size: 56703015
+      nfiles: 355
+    - path: metrics/eval_fp16.json
+      hash: md5
+      md5: 236fca0762aa19cf46158c1e086de4ca
+      size: 369
