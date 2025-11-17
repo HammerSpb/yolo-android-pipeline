@@ -56,7 +56,7 @@ def main():
                     print(f"Error removing .DS_Store: {e}")
 
     # 4. Create the DVC receipt file
-    receipt_path = PROJECT_ROOT / ".dvc" / "tmp" / "cleanup_receipt"
+    receipt_path = PROJECT_ROOT / ".dvc" / "cleanup_receipt"
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
     receipt_path.touch()
     
