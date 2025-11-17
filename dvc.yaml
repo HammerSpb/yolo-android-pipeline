@@ -34,7 +34,7 @@ stages:
       - models/fp32/best.pt
     metrics:
       - metrics/train_stats.json:
-          cache: false
+          cache: true
 
   quantize_fp16:
     desc: "convert the fp32 model to tflite fp16"

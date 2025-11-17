@@ -182,7 +182,7 @@ def main(args):
     with open(args.output_metrics_file, 'w') as f:
         json.dump(all_metrics, f, indent=4)
     
-    print(f"\n✅ All evaluations complete. Combined metrics saved to {args.Soutput_metrics_file}")
+    print(f"\n✅ All evaluations complete. Combined metrics saved to {args.output_metrics_file}")
     print(json.dumps(all_metrics, indent=4))
 
 if __name__ == "__main__":

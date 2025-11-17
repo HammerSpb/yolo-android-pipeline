@@ -9,6 +9,7 @@
 /data/real_test/
 /models/
 /metrics/
+/runs/
 
 # Python cache & virtual environment
 pycache/
