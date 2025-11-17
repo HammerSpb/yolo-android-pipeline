@@ -8,6 +8,7 @@
 /data/raw/dataset.zip
 /data/real_test/
 /models/
+/metrics/
 
 # Python cache & virtual environment
 pycache/
