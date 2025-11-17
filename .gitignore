@@ -9,7 +9,6 @@
 /data/real_test/
 /models/
 /metrics/
-/runs/
 
 # Python cache & virtual environment
 pycache/
@@ -22,11 +21,12 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Manually downloaded base models
-yolov8n.pt
+# YOLO / Ultralytics artifacts
+/runs/
+/models/fp32/best_saved_model/
+/models/fp32/run/
+*.onnx
+*.npy
 
-# Intermediate unzipped data (cleaned up by scripts)
-/data/raw/dataset/
-
-# Machine-specific parameters (NOT in Git)
-params.local.yaml
+# Base models (to be tracked by DVC)
+*.pt
