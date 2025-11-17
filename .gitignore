@@ -9,6 +9,8 @@
 /data/real_test/
 /models/
 /metrics/
+# DVC receipt files
+.cleanup_receipt
 
 # Python cache & virtual environment
 pycache/

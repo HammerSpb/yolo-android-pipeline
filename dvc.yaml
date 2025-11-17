@@ -159,5 +159,5 @@ stages:
       - metrics/eval_int8.json
       - scripts/cleanup.py
     outs:
-      - .dvc/cleanup_receipt:
+      - .cleanup_receipt:
           cache: false
