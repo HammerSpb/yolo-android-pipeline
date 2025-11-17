@@ -125,7 +125,7 @@ def main(args):
     # Create the new data.yaml for DVC
     # Paths must be relative for YOLO to work correctly
     yaml_config = {
-        'path': str(output_dir.resolve()), # Absolute path to processed data
+        'path': str(output_dir), # Absolute path to processed data
         'train': 'train/images',           # Relative to 'path'
         'val': 'val/images',               # Relative to 'path'
         'nc': nc,
