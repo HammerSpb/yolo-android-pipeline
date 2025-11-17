@@ -1,19 +1,30 @@
+# DVC internal cache
 .dvc/cache
 .dvc/tmp
+
+# DVC-tracked data and models (ignore the content, track the .dvc files)
 /data/processed/
 /data/crops/
-/data/raw/dataset.zip # The .dvc file is tracked, not the zip
+/data/raw/dataset.zip
 /data/real_test/
 /models/
-/metrics/
 
+# Python cache & virtual environment
 pycache/
 *.pyc
 .env
 venv/
 *.env
 
+# OS-specific files
 .DS_Store
 Thumbs.db
+
+# Manually downloaded base models
 yolov8n.pt
+
+# Intermediate unzipped data (cleaned up by scripts)
 /data/raw/dataset/
+
+# Machine-specific parameters (NOT in Git)
+params.local.yaml

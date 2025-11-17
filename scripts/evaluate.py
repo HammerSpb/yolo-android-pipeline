@@ -1,9 +1,12 @@
 # File: scripts/evaluate.py
 # Description: Evaluates a model (.pt or .tflite) on multiple criteria:
-#              1. mAP (Accuracy)
-#              2. Binary Hit-Rate (Real-world accuracy)
-#              3. Inference Speed (ms)
-#              4. File Size (MB)
+#             1. mAP (Accuracy)
+#             2. Binary Hit-Rate (Real-world accuracy)
+#             3. Inference Speed (ms)
+#             4. File Size (MB)
+#
+# v2: Fixed bug where 'imgsz' was hardcoded to 640.
+#     Now correctly accepts '--imgsz' argument from dvc.yaml.
 
 import argparse
 import json
@@ -14,14 +17,14 @@ import time
 from ultralytics import YOLO
 from pathlib import Path
 
-def run_mAP_evaluation(model, data_yaml_path):
+def run_mAP_evaluation(model, data_yaml_path, imgsz):
     """
     Runs the standard YOLO .val() method to get mAP, Precision, Recall.
     """
-    print(f"\nRunning mAP evaluation using {data_yaml_path}...")
+    print(f"\nRunning mAP evaluation using {data_yaml_path} at {imgsz}...")
     try:
         # We must specify imgsz for TFLite/ONNX models
-        results = model.val(data=data_yaml_path, split='val', imgsz=640)
+        results = model.val(data=data_yaml_path, split='val', imgsz=imgsz)
         metrics = {
             "mAP50-95": results.box.map,
             "mAP50": results.box.map50,
@@ -31,11 +34,11 @@ def run_mAP_evaluation(model, data_yaml_path):
         print("mAP evaluation complete.")
     except Exception as e:
         print(f"⚠️ Could not run mAP evaluation: {e}")
-        print("   (This can happen with some TFLite models. Reporting 0.)")
+        print("    (This can happen with some TFLite models. Reporting 0.)")
         metrics = {"mAP50-95": 0, "mAP50": 0, "precision": 0, "recall": 0}
     return metrics
 
-def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir):
+def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir, imgsz):
     """
     Runs the 'real-world' binary test (crop vs. no-crop) and
     calculates Hit Rate, False Alarm Rate, and Inference Speed.
@@ -67,12 +70,12 @@ def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir)
     image_count = 0
 
     # --- 3. Warm-up Run (for accurate speed testing) ---
-    print("Running model warm-up for speed test...")
+    print(f"Running model warm-up for speed test at {imgsz}...")
     try:
         warmup_img_path = str(image_files[0])
         warmup_img = cv2.imread(warmup_img_path)
         if warmup_img is not None:
-            model(warmup_img, verbose=False, imgsz=640)
+            model(warmup_img, verbose=False, imgsz=imgsz)
         else:
             print(f"⚠️ Could not read warm-up image: {warmup_img_path}")
     except Exception as e:
@@ -94,7 +97,7 @@ def run_binary_test(model, test_images_dir, ground_truth_path, output_crops_dir)
 
         # --- Run inference and time it ---
         start_time = time.perf_counter()
-        results = model(img, verbose=False, imgsz=640)
+        results = model(img, verbose=False, imgsz=imgsz)
         end_time = time.perf_counter()
         
         total_inference_time_ms += (end_time - start_time) * 1000  # Convert to ms
@@ -156,14 +159,15 @@ def main(args):
     model = YOLO(args.weights)
 
     # 3. Run mAP evaluation
-    map_metrics = run_mAP_evaluation(model, args.data)
+    map_metrics = run_mAP_evaluation(model, args.data, args.imgsz)
 
     # 4. Run binary "real-world" test
     binary_metrics = run_binary_test(
         model,
         args.test_images_dir,
         args.test_ground_truth,
-        args.output_crops_dir
+        args.output_crops_dir,
+        args.imgsz  # <-- Pass the dynamic imgsz
     )
 
     # 5. Combine all metrics
@@ -192,6 +196,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_crops_dir", type=str, required=True, help="Path to save cropped image results.")
     
     parser.add_argument("--output_metrics_file", type=str, required=True, help="Path to save the combined output metrics.json.")
+    
+    # --- THIS IS THE FIX ---
+    parser.add_argument("--imgsz", type=int, required=True, help="Image size for evaluation (e.g., 640).")
     
     args = parser.parse_args()
     main(args)
