@@ -18,3 +18,35 @@ stages:
       md5: a6436d916ee008a5840dcf459fc7103f.dir
       size: 135047296
       nfiles: 1141
+  train:
+    cmd: "python scripts/train.py --data data/processed/data.yaml --base_model yolov8n.pt
+      --epochs 40 --imgsz 640 --patience 20 --batch 8 --device mps --output_dir models/fp32
+      --output_metrics metrics/train_stats.json\n"
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 1dcb40eb0a8f688141514ea3073b2e06.dir
+      size: 135197865
+      nfiles: 1143
+    - path: scripts/train.py
+      hash: md5
+      md5: 260184e40b81d77ee0420e2e0fb5a582
+      size: 3763
+    params:
+      params.yaml:
+        train:
+          base_model: yolov8n.pt
+          epochs: 40
+          imgsz: 640
+          patience: 20
+          batch: 8
+          device: mps
+    outs:
+    - path: metrics/train_stats.json
+      hash: md5
+      md5: ba6efe24f69bb09e845a97249ce7e78b
+      size: 140
+    - path: models/fp32/best.pt
+      hash: md5
+      md5: 594de2eb47c3681bb1069f43992e26a0
+      size: 6217898
